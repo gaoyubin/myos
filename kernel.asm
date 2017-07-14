@@ -20,6 +20,15 @@ SelectorVideo     equ   LABEL_DESC_VIDEO  -  LABEL_GDT
 SelectorStack     equ   LABEL_DESC_STACK  -  LABEL_GDT
 SelectorVram      equ   LABEL_DESC_VRAM   -  LABEL_GDT
 
+
+LABEL_IDT:
+%rep  255
+    Gate  SelectorCode32, SpuriousHandler,0, DA_386IGate
+%endrep
+
+IdtLen  equ $ - LABEL_IDT
+IdtPtr  dw  IdtLen - 1
+        dd  0
 [SECTION  .s16]
 [BITS  16]
 LABEL_BEGIN:
@@ -30,11 +39,12 @@ LABEL_BEGIN:
      mov   ss, ax
      mov   sp, 0100h
 
-
+ 
 	 mov   al, 0x13      ;将VGA设置为320*240*8位彩色模式
      mov   ah, 0
      int   0x10
 
+	 call init8259A     ;中断配置
 
  	 xor   eax, eax       ;将ABEL_SEG_CODE32地址填到LABEL_DESC_CODE32 gdt中
      mov   ax,  cs
@@ -65,6 +75,14 @@ LABEL_BEGIN:
      lgdt  [GdtPtr]    ;让gdtr指针指向gtdptr的地址
 
  	 cli   ;关中断
+	
+	 ;prepare for loading IDT
+     xor   eax, eax
+     mov   ax,  ds
+     shl   eax, 4
+     add   eax, LABEL_IDT
+     mov   dword [IdtPtr + 2], eax
+     lidt  [IdtPtr]
 
      in    al,  92h     
      or    al,  00000010b
@@ -76,7 +94,53 @@ LABEL_BEGIN:
 
 	jmp   dword  SelectorCode32: 0
 
+init8259A:
+     mov  al, 011h
+     out  02h, al
+     call io_delay
+  
+     out 0A0h, al
+     call io_delay
 
+     mov al, 020h
+     out 021h, al
+     call io_delay
+
+     mov  al, 028h
+     out  0A1h, al
+     call io_delay
+
+     mov  al, 004h
+     out  021h, al
+     call io_delay
+
+     mov  al, 002h
+     out  0A1h, al
+     call io_delay
+
+     mov  al, 003h
+     out  021h, al
+     call io_delay
+
+     out  0A1h, al
+     call io_delay
+
+     mov  al, 11111101b ;允许键盘中断
+     out  21h, al
+     call io_delay
+
+     mov  al, 11111111b
+     out  0A1h, al
+     call io_delay
+
+     ret
+
+io_delay:
+     nop
+     nop
+     nop
+     nop
+     ret
 	[SECTION .s32]
 	[BITS  32]
 	LABEL_SEG_CODE32:
@@ -88,8 +152,18 @@ LABEL_BEGIN:
      mov  ax, SelectorVram
      mov  ds,  ax
 
+	 sti
+
 C_CODE_ENTRY:
      %include "write_vga.asm"
+     
+	jmp  $
+
+_SpuriousHandler:
+SpuriousHandler  equ _SpuriousHandler - $$
+    
+     call intHandlerFromC    
+     iretd
 
 io_in8:
       mov  edx, [esp + 4]

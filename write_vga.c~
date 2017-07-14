@@ -32,7 +32,7 @@ static char fontA[16] = {
 0x24, 0x7e, 0x42, 0x42,0x42, 0xe7, 0x00, 0x00
 };
 
-
+static char mcursor[256];
 
 void CMain(void) {
    char*vram = (char*)0xa0000;
@@ -184,4 +184,11 @@ int pysize, int px0, int py0, char* buf, int bxsize) {
       for (x = 0; x < pxsize; x++) {
           vram[(py0+y) * vxsize + (px0+x)] = buf[y * bxsize + x];
       }
+}
+
+void intHandlerFromC(char* esp) {
+   
+    char*vram = (char*)0xa0000;
+    int xsize = 320, ysize = 200;
+    showFont8(vram, xsize, 100, 20, COL8_FFFFFF, systemFont + '3'*16);
 }

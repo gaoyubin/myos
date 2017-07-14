@@ -1,5 +1,5 @@
 ; Disassembly of file: write_vga.o
-; Fri Jul 14 15:21:42 2017
+; Fri Jul 14 17:35:55 2017
 ; Mode: 32 bits
 ; Syntax: YASM/NASM
 ; Instruction set: 80386
@@ -674,6 +674,26 @@ putblock:; Function begin
         leave                                           ; 090C _ C9
         ret                                             ; 090D _ C3
 ; putblock End of function
+
+intHandlerFromC:; Function begin
+        push    ebp                                     ; 090E _ 55
+        mov     ebp, esp                                ; 090F _ 89. E5
+        sub     esp, 40                                 ; 0911 _ 83. EC, 28
+        mov     dword [ebp-0CH], 655360                 ; 0914 _ C7. 45, F4, 000A0000
+        mov     dword [ebp-8H], 320                     ; 091B _ C7. 45, F8, 00000140
+        mov     dword [ebp-4H], 200                     ; 0922 _ C7. 45, FC, 000000C8
+        mov     dword [esp+14H], systemFont+780H        ; 0929 _ C7. 44 24, 14, 00000780(d)
+        mov     dword [esp+10H], 7                      ; 0931 _ C7. 44 24, 10, 00000007
+        mov     dword [esp+0CH], 20                     ; 0939 _ C7. 44 24, 0C, 00000014
+        mov     dword [esp+8H], 100                     ; 0941 _ C7. 44 24, 08, 00000064
+        mov     eax, dword [ebp-8H]                     ; 0949 _ 8B. 45, F8
+        mov     dword [esp+4H], eax                     ; 094C _ 89. 44 24, 04
+        mov     eax, dword [ebp-0CH]                    ; 0950 _ 8B. 45, F4
+        mov     dword [esp], eax                        ; 0953 _ 89. 04 24
+        call    showFont8                               ; 0956 _ E8, FFFFFFFC(rel)
+        leave                                           ; 095B _ C9
+        ret                                             ; 095C _ C3
+; intHandlerFromC End of function
 
 
 

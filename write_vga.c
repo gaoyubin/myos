@@ -185,3 +185,10 @@ int pysize, int px0, int py0, char* buf, int bxsize) {
           vram[(py0+y) * vxsize + (px0+x)] = buf[y * bxsize + x];
       }
 }
+
+void intHandlerFromC(char* esp) {
+   
+    char*vram = (char*)0xa0000;
+    int xsize = 320, ysize = 200;
+    showFont8(vram, xsize, 100, 20, COL8_FFFFFF, systemFont + 'x'*16);
+}
