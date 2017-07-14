@@ -95,14 +95,14 @@ LABEL_BEGIN:
 	jmp   dword  SelectorCode32: 0
 
 init8259A:
-     mov  al, 011h
-     out  02h, al
+     mov  al, 011h;边沿触发，级连
+     out  020h, al
      call io_delay
   
      out 0A0h, al
      call io_delay
 
-     mov al, 020h
+     mov al, 020h ;IRQ0为0x20,IRQ1为0x21，
      out 021h, al
      call io_delay
 
@@ -110,15 +110,15 @@ init8259A:
      out  0A1h, al
      call io_delay
 
-     mov  al, 004h
+     mov  al, 004h  ;IRQ2有从控制器接入
      out  021h, al
      call io_delay
 
-     mov  al, 002h
+     mov  al, 002h  ;接入到主控制器的IRQ2
      out  0A1h, al
      call io_delay
 
-     mov  al, 003h
+     mov  al, 003h  ;自动EOI,80X86模式
      out  021h, al
      call io_delay
 
@@ -141,6 +141,7 @@ io_delay:
      nop
      nop
      ret
+
 	[SECTION .s32]
 	[BITS  32]
 	LABEL_SEG_CODE32:
@@ -154,7 +155,6 @@ io_delay:
 
 	 sti
 
-C_CODE_ENTRY:
      %include "write_vga.asm"
      
 	jmp  $
@@ -162,18 +162,26 @@ C_CODE_ENTRY:
 _SpuriousHandler:
 SpuriousHandler  equ _SpuriousHandler - $$
     
+    
+	 pushad
      call intHandlerFromC    
+	 popad
+
      iretd
+
+	
 
 io_in8:
       mov  edx, [esp + 4]
       mov  eax, 0
       in   al, dx
+	  ret 
 
     io_in16:
       mov  edx, [esp + 4]
       mov  eax, 0
       in   ax, dx
+	  ret
 
     io_in32:
       mov edx, [esp + 4]

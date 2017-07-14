@@ -15,6 +15,8 @@
 #define  COL8_008484  14
 #define  COL8_848484  15
 
+#define  PORT_KEYDAT  0x0060
+#define  PIC_OCW2     0x20
 
 void io_hlt(void);
 void io_cli(void);
@@ -24,6 +26,9 @@ void io_store_eflags(int eflags);
 void showFont8(char *vram, int xsize, int x, int y, char c, char* font);
 void init_mouse_cursor(char* mouse, char bc);
 void putblock(char* vram, int vxsize, int pxsize,int pysize, int px0, int py0, char* buf, int bxsize);
+char   charToHexVal(char c);
+char*  charToHexStr(unsigned char c);
+void showString(char* vram, int xsize, int x, int y, char color, unsigned char *s );
 
 extern char systemFont[16];
 
@@ -31,13 +36,19 @@ static char fontA[16] = {
 0x00, 0x18, 0x18, 0x18,0x18,0x24,0x24,0x24,
 0x24, 0x7e, 0x42, 0x42,0x42, 0xe7, 0x00, 0x00
 };
-
+static char keyval[5] = {'0', 'X', 0, 0, 0};
 static char mcursor[256];
 
-void CMain(void) {
-   char*vram = (char*)0xa0000;
-    int xsize = 320, ysize = 200;
+struct KEYBUF {
+    unsigned char buf[32];
+    int next_r, next_w, len;
+};
+static struct KEYBUF keybuf;
 
+void CMain(void) {
+    char*vram = (char*)0xa0000;
+    int xsize = 320, ysize = 200;
+	int data=0;
     init_palette();
 
     boxfill8(vram, xsize, COL8_008484, 0, 0, xsize-1, ysize-29);
@@ -57,18 +68,28 @@ void CMain(void) {
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-47, ysize-3, xsize-4, ysize-3);
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-3,  ysize-24, xsize-3, ysize-3);
 
-	showFont8(vram, xsize, 8, 8, COL8_FFFFFF, systemFont + 'A'*16);
-    showFont8(vram, xsize, 16, 8, COL8_FFFFFF, systemFont + 'B'*16);
-    showFont8(vram, xsize, 24, 8, COL8_FFFFFF, systemFont + 'C'*16);
-    showFont8(vram, xsize, 32, 8, COL8_FFFFFF, systemFont + '1'*16);
-    showFont8(vram, xsize, 40, 8, COL8_FFFFFF, systemFont + '2'*16);
-    showFont8(vram, xsize, 48, 8, COL8_FFFFFF, systemFont + '3'*16);
+	//showFont8(vram, xsize, 8, 8, COL8_FFFFFF, systemFont + 'A'*16);
+    //showFont8(vram, xsize, 16, 8, COL8_FFFFFF, systemFont + 'B'*16);
+    //showFont8(vram, xsize, 24, 8, COL8_FFFFFF, systemFont + 'C'*16);
+    //showFont8(vram, xsize, 32, 8, COL8_FFFFFF, systemFont + '1'*16);
+    //showFont8(vram, xsize, 40, 8, COL8_FFFFFF, systemFont + '2'*16);
+    //showFont8(vram, xsize, 48, 8, COL8_FFFFFF, systemFont + '3'*16);
 
     init_mouse_cursor(mcursor, COL8_008484);
 	putblock(vram, xsize, 16, 16, 80, 80, mcursor, 16);	
 	//showFont8(vram, xsize, 20, 20, COL8_FFFFFF, fontA);
 	for(;;) {
-	   io_hlt();
+
+		if(keybuf.len>0){
+			data=keybuf.buf[keybuf.next_r];
+			keybuf.next_r=(keybuf.next_r+1)%32;
+			keybuf.len--;
+			char* pStr = charToHexStr(data);
+			static int showPos = 0;
+			showString(vram, xsize, showPos, 0, COL8_FFFFFF, pStr);
+	   		showPos +=32;
+		}
+		
 	}
 
 }
@@ -186,9 +207,47 @@ int pysize, int px0, int py0, char* buf, int bxsize) {
       }
 }
 
-void intHandlerFromC(char* esp) {
+void intHandlerFromC() {
    
     char*vram = (char*)0xa0000;
     int xsize = 320, ysize = 200;
-    showFont8(vram, xsize, 100, 20, COL8_FFFFFF, systemFont + 'x'*16);
+
+    io_out8(PIC_OCW2, 0x21);
+    unsigned char data = 0;
+    data = io_in8(PORT_KEYDAT);
+	
+	if(keybuf.len<32){
+		keybuf.buf[keybuf.next_w]=data;
+		keybuf.len++;
+		keybuf.next_w=(keybuf.next_w+1)%32;	
+	}
+ 	//char* pStr = charToHexStr(data);
+	//static int showPos = 0;
+    //showString(vram, xsize, showPos, 0, COL8_FFFFFF, pStr);
+	//showFont8(vram, xsize, showPos, 0, COL8_FFFFFF, systemFont + 'A'*16);
+    //showPos +=32;
+   
+}
+
+char   charToHexVal(char c) {
+    if (c >= 10) {
+        return 'A' + c - 10;
+    } 
+
+    return '0' + c;
+}
+char*  charToHexStr(unsigned char c) {
+    int i = 0;
+    char mod = c % 16;
+    keyval[3] = charToHexVal(mod);
+    c = c / 16;
+    keyval[2] = charToHexVal(c);
+
+    return keyval;
+}
+void showString(char* vram, int xsize, int x, int y, char color, unsigned char *s ) {
+    for (; *s != 0x00; s++) {
+       showFont8(vram, xsize, x, y,color, systemFont+ *s * 16);
+       x += 8;
+    }
 }
