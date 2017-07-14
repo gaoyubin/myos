@@ -21,6 +21,14 @@ void io_cli(void);
 void io_out(int port, int data);
 int  io_load_eflags(void);
 void io_store_eflags(int eflags);
+void showFont8(char *vram, int xsize, int x, int y, char c, char* font);
+
+extern char systemFont[16];
+
+static char fontA[16] = {
+0x00, 0x18, 0x18, 0x18,0x18,0x24,0x24,0x24,
+0x24, 0x7e, 0x42, 0x42,0x42, 0xe7, 0x00, 0x00
+};
 
 void CMain(void) {
    char*vram = (char*)0xa0000;
@@ -45,6 +53,15 @@ void CMain(void) {
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-47, ysize-3, xsize-4, ysize-3);
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-3,  ysize-24, xsize-3, ysize-3);
 
+	showFont8(vram, xsize, 8, 8, COL8_FFFFFF, systemFont + 'A'*16);
+    showFont8(vram, xsize, 16, 8, COL8_FFFFFF, systemFont + 'B'*16);
+    showFont8(vram, xsize, 24, 8, COL8_FFFFFF, systemFont + 'C'*16);
+    showFont8(vram, xsize, 32, 8, COL8_FFFFFF, systemFont + '1'*16);
+    showFont8(vram, xsize, 40, 8, COL8_FFFFFF, systemFont + '2'*16);
+    showFont8(vram, xsize, 48, 8, COL8_FFFFFF, systemFont + '3'*16);
+
+
+	//showFont8(vram, xsize, 20, 20, COL8_FFFFFF, fontA);
 	for(;;) {
 	   io_hlt();
 	}
@@ -101,4 +118,21 @@ int x0, int y0, int x1, int y1) {
          vram[y * xsize + x] = c;
      }
 
+}
+
+void showFont8(char *vram, int xsize, int x, int y, char c, char* font) {
+    int i;
+    char d;
+
+    for (i = 0; i < 16; i++) {
+        d = font[i]; 
+        if ((d & 0x80) != 0) {vram[(y+i)*xsize + x + 0] = c;}
+        if ((d & 0x40) != 0) {vram[(y+i)*xsize + x + 1] = c;}
+        if ((d & 0x20) != 0) {vram[(y+i)*xsize + x + 2] = c;}
+        if ((d & 0x10) != 0) {vram[(y+i)*xsize + x + 3] = c;}
+        if ((d & 0x08) != 0) {vram[(y+i)*xsize + x + 4] = c;}
+        if ((d & 0x04) != 0) {vram[(y+i)*xsize + x + 5] = c;}
+        if ((d & 0x02) != 0) {vram[(y+i)*xsize + x + 6] = c;}
+        if ((d & 0x01) != 0) {vram[(y+i)*xsize + x + 7] = c;}
+    }
 }

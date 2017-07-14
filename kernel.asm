@@ -142,7 +142,7 @@ io_hlt:  ;void io_hlt(void);
       HLT
       RET
 
-
+%include "fontData.inc"
 SegCode32Len   equ  $ - LABEL_SEG_CODE32
 
 [SECTION .gs]

@@ -89,7 +89,7 @@ LABEL_BEGIN:
      mov  ds,  ax
 
 C_CODE_ENTRY:
-     %include "write_ram.asm"
+     %include "write_vga.asm"
 
 io_in8:
       mov  edx, [esp + 4]
