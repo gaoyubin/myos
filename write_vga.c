@@ -22,6 +22,8 @@ void io_out(int port, int data);
 int  io_load_eflags(void);
 void io_store_eflags(int eflags);
 void showFont8(char *vram, int xsize, int x, int y, char c, char* font);
+void init_mouse_cursor(char* mouse, char bc);
+void putblock(char* vram, int vxsize, int pxsize,int pysize, int px0, int py0, char* buf, int bxsize);
 
 extern char systemFont[16];
 
@@ -29,6 +31,8 @@ static char fontA[16] = {
 0x00, 0x18, 0x18, 0x18,0x18,0x24,0x24,0x24,
 0x24, 0x7e, 0x42, 0x42,0x42, 0xe7, 0x00, 0x00
 };
+
+static char mcursor[256];
 
 void CMain(void) {
    char*vram = (char*)0xa0000;
@@ -60,7 +64,8 @@ void CMain(void) {
     showFont8(vram, xsize, 40, 8, COL8_FFFFFF, systemFont + '2'*16);
     showFont8(vram, xsize, 48, 8, COL8_FFFFFF, systemFont + '3'*16);
 
-
+    init_mouse_cursor(mcursor, COL8_008484);
+	putblock(vram, xsize, 16, 16, 80, 80, mcursor, 16);	
 	//showFont8(vram, xsize, 20, 20, COL8_FFFFFF, fontA);
 	for(;;) {
 	   io_hlt();
@@ -135,4 +140,48 @@ void showFont8(char *vram, int xsize, int x, int y, char c, char* font) {
         if ((d & 0x02) != 0) {vram[(y+i)*xsize + x + 6] = c;}
         if ((d & 0x01) != 0) {vram[(y+i)*xsize + x + 7] = c;}
     }
+}
+
+void init_mouse_cursor(char* mouse, char bc) {
+    static char cursor[16][16] = {
+        "**************..",
+        "*OOOOOOOOOOO*...",
+        "*OOOOOOOOOO*....",
+        "*OOOOOOOOO*.....",
+        "*OOOOOOOO*......",
+        "*OOOOOOO*.......",
+        "*OOOOOOO*.......",
+        "*OOOOOOOO*......",
+        "*OOOO**OOO*.....",
+        "*OOO*..*OOO*....",
+        "*OO*....*OOO*...",
+        "*O*......*OOO*..",
+        "**........*OOO*.",
+        "*..........*OOO*",
+        "............*OO*",
+        ".............***"
+    };
+
+      int x, y;
+      for (y = 0; y < 16; y++) {
+          for (x = 0; x < 16; x++) {
+             if (cursor[y][x] == '*') {
+                 mouse[y*16 + x] = COL8_000000;
+             }
+             if (cursor[y][x] == 'O') {
+                mouse[y*16 + x] = COL8_FFFFFF;
+             }
+             if (cursor[y][x] == '.') {
+                 mouse[y*16 + x] = bc;
+             }
+          }
+      }
+}
+void putblock(char* vram, int vxsize, int pxsize,
+int pysize, int px0, int py0, char* buf, int bxsize) {
+    int x, y;
+    for (y = 0; y < pysize; y++)
+      for (x = 0; x < pxsize; x++) {
+          vram[(py0+y) * vxsize + (px0+x)] = buf[y * bxsize + x];
+      }
 }
