@@ -22,9 +22,19 @@ SelectorVram      equ   LABEL_DESC_VRAM   -  LABEL_GDT
 
 
 LABEL_IDT:
-%rep  255
+%rep  33
     Gate  SelectorCode32, SpuriousHandler,0, DA_386IGate
 %endrep
+
+.021h:
+    Gate SelectorCode32, KeyBoardHandler,0, DA_386IGate
+
+%rep  10
+    Gate  SelectorCode32, SpuriousHandler,0, DA_386IGate
+%endrep
+
+.2CH:
+    Gate SelectorCode32, mouseHandler,0, DA_386IGate
 
 IdtLen  equ $ - LABEL_IDT
 IdtPtr  dw  IdtLen - 1
@@ -125,11 +135,11 @@ init8259A:
      out  0A1h, al
      call io_delay
 
-     mov  al, 11111101b ;允许键盘中断
+     mov  al, 11111001b ;允许键盘中断
      out  21h, al
      call io_delay
 
-     mov  al, 11111111b
+     mov  al, 11101111b  ;允许鼠标中断
      out  0A1h, al
      call io_delay
 
@@ -159,18 +169,28 @@ io_delay:
      
 	jmp  $
 
-_SpuriousHandler:
-SpuriousHandler  equ _SpuriousHandler - $$
+_mouseHandler:
+mouseHandler  equ _mouseHandler - $$
     
     
 	 pushad
-     call intHandlerFromC    
+     call intHandlerForMouse    
 	 popad
 
      iretd
 
-	
+_SpuriousHandler:
+SpuriousHandler  equ _SpuriousHandler - $$
+     iretd	
+_KeyBoardHandler:
+KeyBoardHandler  equ _KeyBoardHandler - $$
+    
+    
+	 pushad
+     call intHandlerForKeyboard   
+	 popad
 
+     iretd
 io_in8:
       mov  edx, [esp + 4]
       mov  eax, 0
@@ -208,6 +228,9 @@ io_in8:
 
     io_cli:
       CLI
+      RET
+    io_sti:
+      STI
       RET
     io_load_eflags:
         pushfd
