@@ -13,7 +13,7 @@ public class OperatingSystem {
     private Floppy floppyDisk = new Floppy();
     private int  MAX_SECTOR_NUM = 18;
     
-    
+ /*  
     private void writeFileToFloppy(String fileName) {
     	File file = new File(fileName);
     	InputStream in = null;
@@ -32,9 +32,9 @@ public class OperatingSystem {
     		return;
     	}
     }
-    
+*/    
     public OperatingSystem(String s) {
-    	writeFileToFloppy(s);
+    	writeFileToFloppy(s, true, 0,1);
     }
     
     private void writeFileToFloppy(String fileName, boolean bootable, int cylinder,int beginSec) {
@@ -52,6 +52,7 @@ public class OperatingSystem {
     		while (in.read(buf) > 0) {
     			//将内核读入到磁盘第0面，第0柱面，第1个扇区
     			floppyDisk.writeFloppy(Floppy.MAGNETIC_HEAD.MAGNETIC_HEAD_0, cylinder, beginSec, buf);
+    			System.out.println("Load file " + fileName + " to floppy with cylinder: " + cylinder + " and sector:" + beginSec);
     			beginSec++;
     			
     			if (beginSec > MAX_SECTOR_NUM) {
